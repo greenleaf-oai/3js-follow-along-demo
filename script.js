@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createScoreState, updateScoreProgress, finalizeRunScore } from "./src/score.mjs";
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9ec9ff);
@@ -51,6 +52,8 @@ runner.position.set(lanePositions[currentLaneIndex], runnerBaseSize.height / 2, 
 scene.add(runner);
 
 const gameOverOverlay = document.getElementById("game-over");
+const scoreDisplay = document.getElementById("score");
+const finalScoreDisplay = document.getElementById("final-score");
 
 const state = {
   isGameOver: false,
@@ -65,6 +68,7 @@ const state = {
   duckTimer: 0,
   isDucking: false,
   obstacles: [],
+  score: createScoreState({ pointsPerMeter: 1 }),
   spawnTimer: 0,
   nextSpawnIn: randRange(0.8, 1.6),
   spawnDistanceMin: 60,
@@ -224,8 +228,18 @@ function triggerGameOver() {
   }
 
   state.isGameOver = true;
+  const finalScore = finalizeRunScore(state.score);
+  if (finalScoreDisplay) {
+    finalScoreDisplay.textContent = `Final score: ${finalScore}`;
+  }
   console.log("Game Over");
   gameOverOverlay.style.display = "flex";
+}
+
+function updateScoreUI() {
+  if (scoreDisplay) {
+    scoreDisplay.textContent = state.score.value;
+  }
 }
 
 function updateRunner(deltaTime) {
@@ -277,9 +291,11 @@ function animate() {
   const deltaTime = clock.getDelta();
 
   if (!state.isGameOver) {
+    updateScoreProgress(state.score, deltaTime, state.forwardSpeed);
     updateRunner(deltaTime);
     updateObstacles(deltaTime);
     checkCollisions();
+    updateScoreUI();
   }
 
   updateCamera(deltaTime);

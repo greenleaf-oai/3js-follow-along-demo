@@ -21,16 +21,32 @@
         align-items: center;
         justify-content: center;
         z-index: 10;
+        flex-direction: column;
+        text-align: center;
         font-family: sans-serif;
         font-size: 3rem;
         color: #fff;
         background: rgba(0, 0, 0, 0.35);
         pointer-events: none;
       }
+
+      #scoreboard {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 10;
+        color: #fff;
+        font-family: sans-serif;
+        font-size: 1.5rem;
+      }
     </style>
   </head>
   <body>
-    <div id="game-over">Game Over</div>
+    <div id="scoreboard">Score: <span id="score">0</span></div>
+    <div id="game-over">
+      <div>Game Over</div>
+      <div id="final-score"></div>
+    </div>
     <script type="importmap">
       {
         "imports": {
