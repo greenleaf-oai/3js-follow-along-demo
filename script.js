@@ -1,5 +1,10 @@
 import * as THREE from "three";
-import { createScoreState, updateScoreProgress, finalizeRunScore } from "./src/score.mjs";
+import {
+  createScoreState,
+  updateScoreProgress,
+  finalizeRunScore,
+  startNewRun,
+} from "./src/score.mjs";
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9ec9ff);
@@ -32,7 +37,8 @@ ground.position.set(0, 0, 220);
 scene.add(ground);
 
 const lanePositions = [-2, 0, 2];
-let currentLaneIndex = 1;
+const startingLaneIndex = 1;
+let currentLaneIndex = startingLaneIndex;
 
 const runnerBaseSize = {
   width: 1,
@@ -40,7 +46,24 @@ const runnerBaseSize = {
   depth: 1,
 };
 
-const playerTexture = new THREE.TextureLoader().load("/assets/horizon-terminal.png");
+const playerTexture = new THREE.TextureLoader().load(
+  "/assets/horizon-terminal.png",
+  (loadedTexture) => {
+    const imageWidth = loadedTexture.image?.width;
+    const imageHeight = loadedTexture.image?.height;
+    if (!imageWidth || !imageHeight) {
+      return;
+    }
+
+    const originalAspectRatio = imageWidth / imageHeight;
+    runnerBaseSize.width = runnerBaseSize.height * originalAspectRatio;
+    runner.geometry.dispose();
+    runner.geometry = new THREE.PlaneGeometry(
+      runnerBaseSize.width,
+      runnerBaseSize.height
+    );
+  }
+);
 playerTexture.colorSpace = THREE.SRGBColorSpace;
 
 const runner = new THREE.Mesh(
@@ -60,6 +83,7 @@ scene.add(runner);
 const gameOverOverlay = document.getElementById("game-over");
 const scoreDisplay = document.getElementById("score");
 const finalScoreDisplay = document.getElementById("final-score");
+const playAgainButton = document.getElementById("play-again");
 
 const state = {
   isGameOver: false,
@@ -159,6 +183,22 @@ function spawnObstacle() {
   });
 }
 
+function clearObstacles() {
+  for (const obstacle of state.obstacles) {
+    scene.remove(obstacle.mesh);
+    obstacle.mesh.geometry.dispose();
+    if (Array.isArray(obstacle.mesh.material)) {
+      for (const material of obstacle.mesh.material) {
+        material.dispose();
+      }
+    } else {
+      obstacle.mesh.material.dispose();
+    }
+  }
+
+  state.obstacles = [];
+}
+
 function updateObstacles(deltaTime) {
   state.spawnTimer += deltaTime;
   if (state.spawnTimer >= state.nextSpawnIn) {
@@ -242,6 +282,35 @@ function triggerGameOver() {
   gameOverOverlay.style.display = "flex";
 }
 
+function resetGame() {
+  if (!state.isGameOver) {
+    return;
+  }
+
+  clearObstacles();
+  state.isGameOver = false;
+  state.verticalVelocity = 0;
+  state.duckTimer = 0;
+  state.isDucking = false;
+  state.spawnTimer = 0;
+  state.nextSpawnIn = randRange(0.8, 1.6);
+
+  currentLaneIndex = startingLaneIndex;
+  runner.scale.set(1, 1, 1);
+  runner.position.set(lanePositions[currentLaneIndex], state.groundedY, 0);
+
+  startNewRun(state.score);
+  updateScoreUI();
+
+  if (finalScoreDisplay) {
+    finalScoreDisplay.textContent = "";
+  }
+  gameOverOverlay.style.display = "none";
+
+  camera.position.copy(runner.position).add(new THREE.Vector3(0, 5, -10));
+  camera.lookAt(runner.position.x, runner.position.y + 1.2, runner.position.z + 15);
+}
+
 function updateScoreUI() {
   if (scoreDisplay) {
     scoreDisplay.textContent = state.score.value;
@@ -284,6 +353,10 @@ function updateCamera(deltaTime) {
 }
 
 window.addEventListener("keydown", onKeyDown);
+
+if (playAgainButton) {
+  playAgainButton.addEventListener("click", resetGame);
+}
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;

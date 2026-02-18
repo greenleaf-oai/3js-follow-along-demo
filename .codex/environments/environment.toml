@@ -8,9 +8,9 @@ script = ""
 [[actions]]
 name = "Run"
 icon = "run"
-command = "python3 -m http.server 4173 --directory /Users/greenleaf/3js-follow-along-demo"
+command = "python3 -m http.server 4173 --directory ."
 
 [[actions]]
 name = "Start & Run"
 icon = "tool"
-command = "python3 -m http.server 4173 --directory /Users/greenleaf/3js-follow-along-demo & open http://127.0.0.1:4173/index.html"
+command = "python3 -m http.server 4173 --directory . & open http://127.0.0.1:4173/index.html"

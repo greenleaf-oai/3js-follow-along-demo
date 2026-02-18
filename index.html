@@ -27,7 +27,17 @@
         font-size: 3rem;
         color: #fff;
         background: rgba(0, 0, 0, 0.35);
-        pointer-events: none;
+        pointer-events: auto;
+        gap: 12px;
+      }
+
+      #play-again {
+        font-size: 1rem;
+        font-weight: 600;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 20px;
+        cursor: pointer;
       }
 
       #scoreboard {
@@ -46,6 +56,7 @@
     <div id="game-over">
       <div>Game Over</div>
       <div id="final-score"></div>
+      <button id="play-again" type="button">Play Again</button>
     </div>
     <script type="importmap">
       {
