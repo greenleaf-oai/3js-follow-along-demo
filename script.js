@@ -6,8 +6,20 @@ import {
   startNewRun,
 } from "./src/score.mjs";
 
+const palette = {
+  fog: 0xa3bbff,
+  ambientLight: 0xdde7ff,
+  directionalLight: 0xafc2ff,
+  skyLight: 0xf4f7ff,
+  groundLight: 0x243986,
+  ground: 0x385de0,
+  obstacle: 0x4c2ce1,
+  obstacleEmissive: 0x1b286e,
+};
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9ec9ff);
+scene.background = null;
+scene.fog = new THREE.Fog(palette.fog, 45, 190);
 
 const camera = new THREE.PerspectiveCamera(
   60,
@@ -16,21 +28,34 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+const ambientLight = new THREE.AmbientLight(palette.ambientLight, 0.85);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(5, 10, -4);
+const directionalLight = new THREE.DirectionalLight(palette.directionalLight, 1.1);
+directionalLight.position.set(7, 11, -6);
 scene.add(directionalLight);
+
+const hemisphereLight = new THREE.HemisphereLight(
+  palette.skyLight,
+  palette.groundLight,
+  0.45
+);
+scene.add(hemisphereLight);
 
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(30, 600),
-  new THREE.MeshStandardMaterial({ color: 0x2f6a2f })
+  new THREE.MeshStandardMaterial({
+    color: palette.ground,
+    roughness: 0.8,
+    metalness: 0.06,
+  })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, 0, 220);
@@ -168,7 +193,13 @@ function spawnObstacle() {
 
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshStandardMaterial({ color: 0xd64545 })
+    new THREE.MeshStandardMaterial({
+      color: palette.obstacle,
+      emissive: palette.obstacleEmissive,
+      emissiveIntensity: 0.28,
+      roughness: 0.38,
+      metalness: 0.14,
+    })
   );
   mesh.position.set(lanePositions[laneIndex], height / 2, z);
   scene.add(mesh);

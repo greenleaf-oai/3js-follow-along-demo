@@ -11,7 +11,14 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: #111;
+        background:
+          radial-gradient(130% 120% at 14% 18%, #f7f9ff 0%, #d7e2ff 34%, #8ea9ff 62%, #3559ef 100%);
+        color: #edf2ff;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        display: block;
       }
 
       #game-over {
@@ -23,21 +30,27 @@
         z-index: 10;
         flex-direction: column;
         text-align: center;
-        font-family: sans-serif;
+        font-family: inherit;
         font-size: 3rem;
-        color: #fff;
-        background: rgba(0, 0, 0, 0.35);
+        color: #f3f6ff;
+        background: rgba(25, 40, 112, 0.42);
+        backdrop-filter: blur(8px);
+        text-shadow: 0 6px 16px rgba(12, 24, 77, 0.35);
         pointer-events: auto;
         gap: 12px;
       }
 
       #play-again {
+        font-family: inherit;
         font-size: 1rem;
         font-weight: 600;
         border: 0;
         border-radius: 999px;
         padding: 10px 20px;
         cursor: pointer;
+        color: #10286c;
+        background: linear-gradient(135deg, #edf2ff 0%, #a4bcff 56%, #3f63f0 100%);
+        box-shadow: 0 8px 22px rgba(19, 36, 96, 0.24);
       }
 
       #scoreboard {
@@ -45,9 +58,14 @@
         top: 16px;
         left: 16px;
         z-index: 10;
-        color: #fff;
-        font-family: sans-serif;
+        color: #132b72;
+        font-family: inherit;
         font-size: 1.5rem;
+        background: rgba(238, 243, 255, 0.56);
+        border: 1px solid rgba(148, 170, 246, 0.72);
+        border-radius: 999px;
+        padding: 8px 14px;
+        backdrop-filter: blur(4px);
       }
     </style>
   </head>
