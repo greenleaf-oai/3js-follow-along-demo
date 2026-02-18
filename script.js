@@ -31,29 +31,6 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, 0, 220);
 scene.add(ground);
 
-const horizonTexture = new THREE.TextureLoader().load("/assets/horizon-terminal.png");
-horizonTexture.colorSpace = THREE.SRGBColorSpace;
-
-const horizonBillboard = new THREE.Sprite(
-  new THREE.SpriteMaterial({
-    map: horizonTexture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-  })
-);
-
-const horizon = {
-  x: 0,
-  y: 7,
-  z: -55,
-  size: 14,
-};
-
-horizonBillboard.scale.set(horizon.size, horizon.size, 1);
-horizonBillboard.position.set(horizon.x, horizon.y, horizon.z);
-camera.add(horizonBillboard);
-
 const lanePositions = [-2, 0, 2];
 let currentLaneIndex = 1;
 
@@ -63,13 +40,19 @@ const runnerBaseSize = {
   depth: 1,
 };
 
+const playerTexture = new THREE.TextureLoader().load("/assets/horizon-terminal.png");
+playerTexture.colorSpace = THREE.SRGBColorSpace;
+
 const runner = new THREE.Mesh(
-  new THREE.BoxGeometry(
+  new THREE.PlaneGeometry(
     runnerBaseSize.width,
-    runnerBaseSize.height,
-    runnerBaseSize.depth
+    runnerBaseSize.height
   ),
-  new THREE.MeshStandardMaterial({ color: 0x1b5cff })
+  new THREE.MeshBasicMaterial({
+    map: playerTexture,
+    transparent: true,
+    side: THREE.DoubleSide,
+  })
 );
 runner.position.set(lanePositions[currentLaneIndex], runnerBaseSize.height / 2, 0);
 scene.add(runner);
