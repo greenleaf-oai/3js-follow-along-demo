@@ -31,6 +31,29 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, 0, 220);
 scene.add(ground);
 
+const horizonTexture = new THREE.TextureLoader().load("/assets/horizon-terminal.png");
+horizonTexture.colorSpace = THREE.SRGBColorSpace;
+
+const horizonBillboard = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: horizonTexture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  })
+);
+
+const horizon = {
+  x: 0,
+  y: 7,
+  z: -55,
+  size: 14,
+};
+
+horizonBillboard.scale.set(horizon.size, horizon.size, 1);
+horizonBillboard.position.set(horizon.x, horizon.y, horizon.z);
+camera.add(horizonBillboard);
+
 const lanePositions = [-2, 0, 2];
 let currentLaneIndex = 1;
 
