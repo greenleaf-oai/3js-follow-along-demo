@@ -60,17 +60,22 @@
         z-index: 10;
         color: #132b72;
         font-family: inherit;
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         background: rgba(238, 243, 255, 0.56);
         border: 1px solid rgba(148, 170, 246, 0.72);
-        border-radius: 999px;
-        padding: 8px 14px;
+        border-radius: 18px;
+        padding: 10px 14px;
         backdrop-filter: blur(4px);
+        display: flex;
+        gap: 16px;
       }
     </style>
   </head>
   <body>
-    <div id="scoreboard">Score: <span id="score">0</span></div>
+    <div id="scoreboard">
+      <div>Score: <span id="score">0</span></div>
+      <div>Best: <span id="best-score">0</span></div>
+    </div>
     <div id="game-over">
       <div>Game Over</div>
       <div id="final-score"></div>

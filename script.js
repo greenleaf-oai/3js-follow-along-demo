@@ -15,6 +15,10 @@ const palette = {
   ground: 0x385de0,
   obstacle: 0x4c2ce1,
   obstacleEmissive: 0x1b286e,
+  lowObstacle: 0x263ec2,
+  lowObstacleEmissive: 0x12256a,
+  highObstacle: 0x6e4dff,
+  highObstacleEmissive: 0x2d1e78,
 };
 
 const scene = new THREE.Scene();
@@ -107,12 +111,32 @@ scene.add(runner);
 
 const gameOverOverlay = document.getElementById("game-over");
 const scoreDisplay = document.getElementById("score");
+const bestScoreDisplay = document.getElementById("best-score");
 const finalScoreDisplay = document.getElementById("final-score");
 const playAgainButton = document.getElementById("play-again");
 
+const difficulty = {
+  baseForwardSpeed: 14,
+  maxForwardSpeed: 24,
+  speedPerLevel: 0.8,
+  scorePerLevel: 120,
+  spawnIntervalMin: 0.8,
+  spawnIntervalMax: 1.6,
+  spawnIntervalMinFloor: 0.44,
+  spawnIntervalMaxFloor: 0.95,
+  spawnIntervalMinPerLevel: 0.025,
+  spawnIntervalMaxPerLevel: 0.04,
+  spawnDistanceMin: 60,
+  spawnDistanceMax: 100,
+  spawnDistanceMinFloor: 36,
+  spawnDistanceMaxFloor: 68,
+  spawnDistanceMinPerLevel: 1.5,
+  spawnDistanceMaxPerLevel: 2.5,
+};
+
 const state = {
   isGameOver: false,
-  forwardSpeed: 14,
+  forwardSpeed: difficulty.baseForwardSpeed,
   laneLerpSpeed: 14,
   gravity: -35,
   jumpVelocity: 13,
@@ -125,9 +149,11 @@ const state = {
   obstacles: [],
   score: createScoreState({ pointsPerMeter: 1 }),
   spawnTimer: 0,
-  nextSpawnIn: randRange(0.8, 1.6),
-  spawnDistanceMin: 60,
-  spawnDistanceMax: 100,
+  nextSpawnIn: randRange(difficulty.spawnIntervalMin, difficulty.spawnIntervalMax),
+  spawnIntervalMin: difficulty.spawnIntervalMin,
+  spawnIntervalMax: difficulty.spawnIntervalMax,
+  spawnDistanceMin: difficulty.spawnDistanceMin,
+  spawnDistanceMax: difficulty.spawnDistanceMax,
   cleanupDistance: 25,
 };
 
@@ -145,11 +171,11 @@ function onKeyDown(event) {
   }
 
   if (event.code === "ArrowLeft" || event.code === "KeyA") {
-    currentLaneIndex = clamp(currentLaneIndex + 1, 0, lanePositions.length - 1);
+    currentLaneIndex = clamp(currentLaneIndex - 1, 0, lanePositions.length - 1);
   }
 
   if (event.code === "ArrowRight" || event.code === "KeyD") {
-    currentLaneIndex = clamp(currentLaneIndex - 1, 0, lanePositions.length - 1);
+    currentLaneIndex = clamp(currentLaneIndex + 1, 0, lanePositions.length - 1);
   }
 
   if (event.code === "Space") {
@@ -184,28 +210,86 @@ function endDuck() {
   runner.position.y = state.groundedY;
 }
 
+const obstacleTypes = [
+  {
+    kind: "block",
+    weight: 0.45,
+    width: 1.2,
+    heightMin: 1.6,
+    heightMax: 2.4,
+    depth: 1.2,
+    yMode: "ground",
+    color: palette.obstacle,
+    emissive: palette.obstacleEmissive,
+  },
+  {
+    kind: "low",
+    weight: 0.3,
+    width: 1.5,
+    heightMin: 0.65,
+    heightMax: 1.05,
+    depth: 1.4,
+    yMode: "ground",
+    color: palette.lowObstacle,
+    emissive: palette.lowObstacleEmissive,
+  },
+  {
+    kind: "high",
+    weight: 0.25,
+    width: 1.6,
+    heightMin: 0.75,
+    heightMax: 1.1,
+    depth: 1.4,
+    yMode: "head",
+    yOffsetMin: 1.95,
+    yOffsetMax: 2.15,
+    color: palette.highObstacle,
+    emissive: palette.highObstacleEmissive,
+  },
+];
+
+function pickObstacleType() {
+  const totalWeight = obstacleTypes.reduce((sum, type) => sum + type.weight, 0);
+  let pick = Math.random() * totalWeight;
+
+  for (const type of obstacleTypes) {
+    pick -= type.weight;
+    if (pick <= 0) {
+      return type;
+    }
+  }
+
+  return obstacleTypes[0];
+}
+
 function spawnObstacle() {
   const laneIndex = Math.floor(Math.random() * lanePositions.length);
-  const width = 1.2;
-  const height = randRange(1.2, 2.4);
-  const depth = 1.2;
+  const type = pickObstacleType();
+  const width = type.width;
+  const height = randRange(type.heightMin, type.heightMax);
+  const depth = type.depth;
   const z = runner.position.z + randRange(state.spawnDistanceMin, state.spawnDistanceMax);
+  const y =
+    type.yMode === "head"
+      ? randRange(type.yOffsetMin, type.yOffsetMax)
+      : height / 2;
 
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, depth),
     new THREE.MeshStandardMaterial({
-      color: palette.obstacle,
-      emissive: palette.obstacleEmissive,
+      color: type.color,
+      emissive: type.emissive,
       emissiveIntensity: 0.28,
       roughness: 0.38,
       metalness: 0.14,
     })
   );
-  mesh.position.set(lanePositions[laneIndex], height / 2, z);
+  mesh.position.set(lanePositions[laneIndex], y, z);
   scene.add(mesh);
 
   state.obstacles.push({
     mesh,
+    kind: type.kind,
     laneIndex,
     width,
     height,
@@ -230,11 +314,45 @@ function clearObstacles() {
   state.obstacles = [];
 }
 
+function updateDifficulty() {
+  const level = Math.floor(state.score.value / difficulty.scorePerLevel);
+  state.forwardSpeed = Math.min(
+    difficulty.baseForwardSpeed + level * difficulty.speedPerLevel,
+    difficulty.maxForwardSpeed
+  );
+
+  state.spawnIntervalMin = Math.max(
+    difficulty.spawnIntervalMinFloor,
+    difficulty.spawnIntervalMin - level * difficulty.spawnIntervalMinPerLevel
+  );
+  state.spawnIntervalMax = Math.max(
+    difficulty.spawnIntervalMaxFloor,
+    difficulty.spawnIntervalMax - level * difficulty.spawnIntervalMaxPerLevel
+  );
+  state.spawnIntervalMax = Math.max(
+    state.spawnIntervalMin + 0.12,
+    state.spawnIntervalMax
+  );
+
+  state.spawnDistanceMin = Math.max(
+    difficulty.spawnDistanceMinFloor,
+    difficulty.spawnDistanceMin - level * difficulty.spawnDistanceMinPerLevel
+  );
+  state.spawnDistanceMax = Math.max(
+    difficulty.spawnDistanceMaxFloor,
+    difficulty.spawnDistanceMax - level * difficulty.spawnDistanceMaxPerLevel
+  );
+  state.spawnDistanceMax = Math.max(
+    state.spawnDistanceMin + 10,
+    state.spawnDistanceMax
+  );
+}
+
 function updateObstacles(deltaTime) {
   state.spawnTimer += deltaTime;
   if (state.spawnTimer >= state.nextSpawnIn) {
     state.spawnTimer = 0;
-    state.nextSpawnIn = randRange(0.8, 1.6);
+    state.nextSpawnIn = randRange(state.spawnIntervalMin, state.spawnIntervalMax);
     spawnObstacle();
   }
 
@@ -309,6 +427,7 @@ function triggerGameOver() {
   if (finalScoreDisplay) {
     finalScoreDisplay.textContent = `Final score: ${finalScore}`;
   }
+  updateScoreUI();
   console.log("Game Over");
   gameOverOverlay.style.display = "flex";
 }
@@ -324,7 +443,12 @@ function resetGame() {
   state.duckTimer = 0;
   state.isDucking = false;
   state.spawnTimer = 0;
-  state.nextSpawnIn = randRange(0.8, 1.6);
+  state.forwardSpeed = difficulty.baseForwardSpeed;
+  state.spawnIntervalMin = difficulty.spawnIntervalMin;
+  state.spawnIntervalMax = difficulty.spawnIntervalMax;
+  state.spawnDistanceMin = difficulty.spawnDistanceMin;
+  state.spawnDistanceMax = difficulty.spawnDistanceMax;
+  state.nextSpawnIn = randRange(state.spawnIntervalMin, state.spawnIntervalMax);
 
   currentLaneIndex = startingLaneIndex;
   runner.scale.set(1, 1, 1);
@@ -345,6 +469,9 @@ function resetGame() {
 function updateScoreUI() {
   if (scoreDisplay) {
     scoreDisplay.textContent = state.score.value;
+  }
+  if (bestScoreDisplay) {
+    bestScoreDisplay.textContent = state.score.bestValue;
   }
 }
 
@@ -402,6 +529,7 @@ function animate() {
 
   if (!state.isGameOver) {
     updateScoreProgress(state.score, deltaTime, state.forwardSpeed);
+    updateDifficulty();
     updateRunner(deltaTime);
     updateObstacles(deltaTime);
     checkCollisions();
